@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity()
+@Index(['transactionId'], { unique: true })
 export class IdempotencyLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;

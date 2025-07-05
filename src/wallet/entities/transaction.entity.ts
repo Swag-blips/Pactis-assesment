@@ -4,12 +4,14 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { Wallet } from './wallet.entity';
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'transfer';
 
 @Entity()
+@Index(['senderWallet', 'receiverWallet'], { unique: true })
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;

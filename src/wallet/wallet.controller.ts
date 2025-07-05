@@ -5,6 +5,7 @@ import {
   Post,
   HttpCode,
   HttpStatus,
+  Get,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -272,6 +273,14 @@ export class WalletController {
         message: 'error transfering funds',
         error: error.message,
       };
+    }
+  }
+
+  @Get('/transactions')
+  async retrieveTransactionsForWallet() {
+    try {
+    } catch (error) {
+      console.error(error);
     }
   }
 }

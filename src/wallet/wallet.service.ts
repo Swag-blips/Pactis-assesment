@@ -8,6 +8,7 @@ import {
 import {
   CreateWalletDto,
   DepositFundsDto,
+  GetTransactionsDto,
   TransferFundsDto,
   WithDrawFundsDto,
 } from './dto/wallet.dto';
@@ -306,6 +307,20 @@ export class WalletService {
     });
 
     return resultPayload;
+  }
+
+  async getTransactions(
+    getTransactionsDto: GetTransactionsDto,
+  ): Promise<Transaction[]> {
+    const { walletId } = getTransactionsDto;
+
+    const wallet = await this.findWalletOrThrow(walletId);
+
+    const transactions = await this.transactionRepository.find({
+      where: [{ receiverWallet: wallet }, { senderWallet: wallet }],
+    });
+
+    return transactions;
   }
   private async findWalletOrThrow(walletId: string): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({
