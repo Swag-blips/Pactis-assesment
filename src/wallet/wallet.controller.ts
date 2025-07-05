@@ -2,6 +2,7 @@ import { Body, Controller, Logger, Post } from '@nestjs/common';
 import {
   CreateWalletDto,
   DepositFundsDto,
+  TransferFundsDto,
   WithDrawFundsDto,
 } from './dto/wallet.dto';
 import { WalletService } from './wallet.service';
@@ -51,10 +52,11 @@ export class WalletController {
   }
 
   @Post('/withdraw')
-  async withDrawFundsDto(@Body() withdrawFundsDto: WithDrawFundsDto) {
+  async withDrawFunds(@Body() withdrawFundsDto: WithDrawFundsDto) {
     this.logger.log('withdrawing funds endpoint hit');
     try {
-      const withdrawal = await this.walletService.withDrawFundsDto(withdrawFundsDto);
+      const withdrawal =
+        await this.walletService.withDrawFunds(withdrawFundsDto);
       return {
         success: true,
         message: 'Funds withdrawn successfully',
@@ -65,6 +67,22 @@ export class WalletController {
       return {
         success: false,
         message: 'error withdrawing funds',
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('/transfer')
+  async transferFunds(@Body() transferFundsDto: TransferFundsDto) {
+    this.logger.log('withdrawing funds endpoint hit');
+    try {
+      const transfer = await this.walletService.transferFunds(transferFundsDto);
+
+      return { success: true, message: 'Transfer successful' };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'error transfering funds',
         error: error.message,
       };
     }

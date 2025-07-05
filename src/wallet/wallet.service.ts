@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   CreateWalletDto,
   DepositFundsDto,
+  TransferFundsDto,
   WithDrawFundsDto,
 } from './dto/wallet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -42,14 +43,16 @@ export class WalletService {
     return updatedBalance;
   }
 
-  async withDrawFundsDto(withDrawFundsDto: WithDrawFundsDto): Promise<Wallet> {
+  async withDrawFunds(withDrawFundsDto: WithDrawFundsDto): Promise<Wallet> {
     const wallet = await this.findWalletOrThrow(withDrawFundsDto.walletId);
 
     const currentBalance = parseFloat(wallet.balance.toString());
     const withdrawAmount = parseFloat(withDrawFundsDto.amount.toString());
 
     if (withdrawAmount <= 0) {
-      throw new BadRequestException('Withdraw amount must be greater than zero');
+      throw new BadRequestException(
+        'Withdraw amount must be greater than zero',
+      );
     }
 
     if (currentBalance < withdrawAmount) {
@@ -63,8 +66,52 @@ export class WalletService {
     return updatedWallet;
   }
 
+  async transferFunds(transferFundsDto: TransferFundsDto) {
+    await this.walletRepository.manager.transaction(async (entityManager) => {
+      const senderWallet = await entityManager.findOne(Wallet, {
+        where: { id: transferFundsDto.senderWalletId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const receiverWallet = await entityManager.findOne(Wallet, {
+        where: { id: transferFundsDto.receiverWalletId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!senderWallet || !receiverWallet) {
+        throw new NotFoundException('Sender or receiver wallet not found');
+      }
+
+      const senderCurrentBalance = parseFloat(senderWallet.balance.toString());
+      const receiverCurrentBalance = parseFloat(
+        receiverWallet.balance.toString(),
+      );
+      const transferAmount = parseFloat(transferFundsDto.amount.toString());
+
+      if (transferAmount <= 0) {
+        throw new BadRequestException(
+          'Transfer amount must be greater than zero',
+        );
+      }
+
+      if (senderCurrentBalance < transferAmount) {
+        throw new BadRequestException('Insufficient funds');
+      }
+
+      senderWallet.balance = parseFloat(
+        (senderCurrentBalance - transferAmount).toFixed(2),
+      );
+      receiverWallet.balance = parseFloat(
+        (receiverCurrentBalance + transferAmount).toFixed(2),
+      );
+
+      await entityManager.save([senderWallet, receiverWallet]);
+    });
+  }
+
   private async findWalletOrThrow(walletId: string): Promise<Wallet> {
-    const wallet = await this.walletRepository.findOne({ where: { id: walletId } });
+    const wallet = await this.walletRepository.findOne({
+      where: { id: walletId },
+    });
     if (!wallet) {
       throw new NotFoundException('Wallet not found');
     }

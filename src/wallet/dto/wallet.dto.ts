@@ -24,3 +24,15 @@ export class WithDrawFundsDto {
   @IsUUID()
   walletId: string;
 }
+
+export class TransferFundsDto {
+  @IsNumber()
+  @Min(1)
+  amount: number;
+
+  @IsUUID()
+  senderWalletId: string;
+
+  @IsUUID()
+  receiverWalletId: string;
+}
