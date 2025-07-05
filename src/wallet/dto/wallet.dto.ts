@@ -35,4 +35,7 @@ export class TransferFundsDto {
 
   @IsUUID()
   receiverWalletId: string;
+
+  @IsUUID()
+  transactionId: string;
 }

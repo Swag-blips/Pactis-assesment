@@ -14,12 +14,18 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { Repository } from 'typeorm';
+import { Transaction } from './entities/transaction.entity';
+import { IdempotencyLog } from './entities/idempotency.entity';
 
 @Injectable()
 export class WalletService {
   private readonly logger = new Logger();
   constructor(
     @InjectRepository(Wallet) private walletRepository: Repository<Wallet>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
+    @InjectRepository(IdempotencyLog)
+    private idempotencyLogRepository: Repository<IdempotencyLog>,
   ) {}
   async createWallet(createWalletDto: CreateWalletDto): Promise<Wallet> {
     const newWallet = this.walletRepository.create({
@@ -65,15 +71,34 @@ export class WalletService {
 
     return updatedWallet;
   }
-
   async transferFunds(transferFundsDto: TransferFundsDto) {
+    const { senderWalletId, receiverWalletId, amount, transactionId } =
+      transferFundsDto;
+
+    const existing = await this.idempotencyLogRepository.findOne({
+      where: { transactionId },
+    });
+
+    if (existing?.status === 'SUCCESS') {
+      this.logger.log(`Idempotent hit: ${transactionId}`);
+      return existing.responsePayload;
+    }
+
+    let resultPayload: any;
+
     await this.walletRepository.manager.transaction(async (entityManager) => {
+      await entityManager.save(IdempotencyLog, {
+        transactionId,
+        status: 'PROCESSING',
+      });
+
       const senderWallet = await entityManager.findOne(Wallet, {
-        where: { id: transferFundsDto.senderWalletId },
+        where: { id: senderWalletId },
         lock: { mode: 'pessimistic_write' },
       });
+
       const receiverWallet = await entityManager.findOne(Wallet, {
-        where: { id: transferFundsDto.receiverWalletId },
+        where: { id: receiverWalletId },
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -81,11 +106,9 @@ export class WalletService {
         throw new NotFoundException('Sender or receiver wallet not found');
       }
 
-      const senderCurrentBalance = parseFloat(senderWallet.balance.toString());
-      const receiverCurrentBalance = parseFloat(
-        receiverWallet.balance.toString(),
-      );
-      const transferAmount = parseFloat(transferFundsDto.amount.toString());
+      const senderBalance = parseFloat(senderWallet.balance.toString());
+      const receiverBalance = parseFloat(receiverWallet.balance.toString());
+      const transferAmount = parseFloat(amount.toString());
 
       if (transferAmount <= 0) {
         throw new BadRequestException(
@@ -93,21 +116,39 @@ export class WalletService {
         );
       }
 
-      if (senderCurrentBalance < transferAmount) {
+      if (senderBalance < transferAmount) {
         throw new BadRequestException('Insufficient funds');
       }
 
       senderWallet.balance = parseFloat(
-        (senderCurrentBalance - transferAmount).toFixed(2),
+        (senderBalance - transferAmount).toFixed(2),
       );
       receiverWallet.balance = parseFloat(
-        (receiverCurrentBalance + transferAmount).toFixed(2),
+        (receiverBalance + transferAmount).toFixed(2),
       );
 
       await entityManager.save([senderWallet, receiverWallet]);
-    });
-  }
 
+      await entityManager.save(Transaction, {
+        amount: transferAmount,
+        type: 'transfer',
+        senderWallet,
+        receiverWallet,
+      });
+
+      resultPayload = {
+        transactionId,
+      };
+
+      await entityManager.save(IdempotencyLog, {
+        transactionId,
+        status: 'SUCCESS',
+        responsePayload: resultPayload,
+      });
+    });
+
+    return resultPayload;
+  }
   private async findWalletOrThrow(walletId: string): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({
       where: { id: walletId },
