@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class createWalletDto {
   @IsOptional()
@@ -10,4 +10,7 @@ export class createWalletDto {
 export class depositFundsDto {
   @IsNumber()
   amount: number;
+
+  @IsUUID()
+  walletId: string;
 }
