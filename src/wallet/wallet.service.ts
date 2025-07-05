@@ -96,7 +96,7 @@ export class WalletService {
       await entityManager.save(Transaction, {
         amount: depositAmount,
         type: 'deposit',
-        receiverWallet: wallet,
+        receiverWallet: { id: wallet.id },
       });
 
       await entityManager.update(
@@ -191,7 +191,7 @@ export class WalletService {
       await entityManager.save(Transaction, {
         amount: withdrawAmount,
         type: 'withdrawal',
-        senderWallet: wallet,
+        senderWallet: { id: wallet.id },
       });
 
       if (transactionId) {
@@ -283,16 +283,15 @@ export class WalletService {
       const transaction = await entityManager.save(Transaction, {
         amount: transferAmount,
         type: 'transfer',
-        senderWallet,
-        receiverWallet,
+        senderWallet: { id: senderWallet.id },
+        receiverWallet: { id: receiverWallet.id },
       });
 
       resultPayload = {
         transaction,
-        senderWallet: { id: senderWallet.id, balance: senderWallet.balance },
+        senderWallet: { id: senderWallet.id },
         receiverWallet: {
           id: receiverWallet.id,
-          balance: receiverWallet.balance,
         },
       };
 
@@ -309,17 +308,18 @@ export class WalletService {
     return resultPayload;
   }
 
-  async getTransactions(
-    getTransactionsDto: GetTransactionsDto,
-  ): Promise<Transaction[]> {
-    const { walletId } = getTransactionsDto;
-
+  async getTransactions(walletId: string): Promise<Transaction[]> {
     const wallet = await this.findWalletOrThrow(walletId);
 
     const transactions = await this.transactionRepository.find({
-      where: [{ receiverWallet: wallet }, { senderWallet: wallet }],
+      where: [
+        { receiverWallet: { id: wallet.id } },
+        { senderWallet: { id: wallet.id } },
+      ],
+      relations: ['senderWallet', 'receiverWallet'],
+      order: { timestamp: 'DESC' },
     });
-
+    this.logger.log('transactions', transactions);
     return transactions;
   }
   private async findWalletOrThrow(walletId: string): Promise<Wallet> {

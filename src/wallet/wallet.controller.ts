@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Logger,
-  Post,
-  HttpCode,
-  HttpStatus,
-  Get,
-} from '@nestjs/common';
+import { Body, Controller, Logger, Post, Get, Param } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -21,6 +13,7 @@ import {
 import {
   CreateWalletDto,
   DepositFundsDto,
+  GetTransactionsDto,
   TransferFundsDto,
   WithDrawFundsDto,
 } from './dto/wallet.dto';
@@ -276,11 +269,22 @@ export class WalletController {
     }
   }
 
-  @Get('/transactions')
-  async retrieveTransactionsForWallet() {
+  @Get('/transactions/:walletId')
+  async retrieveTransactionsForWallet(@Param('walletId') walletId: string) {
     try {
+      const transactions = await this.walletService.getTransactions(walletId);
+
+      return {
+        success: true,
+        message: 'Transactions found',
+        data: transactions,
+      };
     } catch (error) {
-      console.error(error);
+      return {
+        success: false,
+        message: 'error transfering funds',
+        error: error.message,
+      };
     }
   }
 }
