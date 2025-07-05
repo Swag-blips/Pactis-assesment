@@ -78,8 +78,9 @@ export class WalletController {
     try {
       const transfer = await this.walletService.transferFunds(transferFundsDto);
 
-      return { success: true, message: 'Transfer successful' };
+      return { success: true, message: 'Transfer successful', data: transfer };
     } catch (error) {
+      this.logger.error(error);
       return {
         success: false,
         message: 'error transfering funds',

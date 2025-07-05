@@ -72,13 +72,11 @@ export class WalletService {
     return updatedWallet;
   }
   async transferFunds(transferFundsDto: TransferFundsDto) {
-    const { senderWalletId, receiverWalletId, amount, transactionId } =
-      transferFundsDto;
+    const { senderWalletId, receiverWalletId, amount, transactionId } = transferFundsDto;
 
-    const existing = await this.idempotencyLogRepository.findOne({
-      where: { transactionId },
-    });
 
+    const existing = await this.idempotencyLogRepository.findOne({ where: { transactionId } });
+    this.logger.log('existing', existing);
     if (existing?.status === 'SUCCESS') {
       this.logger.log(`Idempotent hit: ${transactionId}`);
       return existing.responsePayload;
@@ -87,21 +85,28 @@ export class WalletService {
     let resultPayload: any;
 
     await this.walletRepository.manager.transaction(async (entityManager) => {
-      await entityManager.save(IdempotencyLog, {
-        transactionId,
-        status: 'PROCESSING',
-      });
+     
+      try {
+        await entityManager.insert(IdempotencyLog, {
+          transactionId,
+          status: 'PROCESSING',
+        });
+      } catch (err) {
+        
+        if (!err?.code || err.code !== '23505') { 
+          throw err;
+        }
+      }
 
+  
       const senderWallet = await entityManager.findOne(Wallet, {
         where: { id: senderWalletId },
         lock: { mode: 'pessimistic_write' },
       });
-
       const receiverWallet = await entityManager.findOne(Wallet, {
         where: { id: receiverWalletId },
         lock: { mode: 'pessimistic_write' },
       });
-
       if (!senderWallet || !receiverWallet) {
         throw new NotFoundException('Sender or receiver wallet not found');
       }
@@ -111,25 +116,18 @@ export class WalletService {
       const transferAmount = parseFloat(amount.toString());
 
       if (transferAmount <= 0) {
-        throw new BadRequestException(
-          'Transfer amount must be greater than zero',
-        );
+        throw new BadRequestException('Transfer amount must be greater than zero');
       }
-
       if (senderBalance < transferAmount) {
         throw new BadRequestException('Insufficient funds');
       }
 
-      senderWallet.balance = parseFloat(
-        (senderBalance - transferAmount).toFixed(2),
-      );
-      receiverWallet.balance = parseFloat(
-        (receiverBalance + transferAmount).toFixed(2),
-      );
+      senderWallet.balance = parseFloat((senderBalance - transferAmount).toFixed(2));
+      receiverWallet.balance = parseFloat((receiverBalance + transferAmount).toFixed(2));
 
       await entityManager.save([senderWallet, receiverWallet]);
 
-      await entityManager.save(Transaction, {
+      const transaction = await entityManager.save(Transaction, {
         amount: transferAmount,
         type: 'transfer',
         senderWallet,
@@ -137,11 +135,16 @@ export class WalletService {
       });
 
       resultPayload = {
-        transactionId,
+        transaction,
+        senderWallet: { id: senderWallet.id, balance: senderWallet.balance },
+        receiverWallet: {
+          id: receiverWallet.id,
+          balance: receiverWallet.balance,
+        },
       };
 
-      await entityManager.save(IdempotencyLog, {
-        transactionId,
+
+      await entityManager.update(IdempotencyLog, { transactionId }, {
         status: 'SUCCESS',
         responsePayload: resultPayload,
       });
