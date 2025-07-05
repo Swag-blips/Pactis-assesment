@@ -308,19 +308,27 @@ export class WalletService {
     return resultPayload;
   }
 
-  async getTransactions(walletId: string): Promise<Transaction[]> {
+  async getTransactions(
+    walletId: string,
+    take: number,
+    skip: number,
+  ): Promise<{ data: Transaction[]; total: number }> {
     const wallet = await this.findWalletOrThrow(walletId);
 
-    const transactions = await this.transactionRepository.find({
-      where: [
-        { receiverWallet: { id: wallet.id } },
-        { senderWallet: { id: wallet.id } },
-      ],
-      relations: ['senderWallet', 'receiverWallet'],
-      order: { timestamp: 'DESC' },
-    });
+    const [transactions, total] = await this.transactionRepository.findAndCount(
+      {
+        where: [
+          { receiverWallet: { id: wallet.id } },
+          { senderWallet: { id: wallet.id } },
+        ],
+        relations: ['senderWallet', 'receiverWallet'],
+        order: { timestamp: 'DESC' },
+        take: take || 10, 
+        skip: skip || 0,
+      },
+    );
     this.logger.log('transactions', transactions);
-    return transactions;
+    return { data: transactions, total };
   }
   private async findWalletOrThrow(walletId: string): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({

@@ -1,4 +1,12 @@
-import { Body, Controller, Logger, Post, Get, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Get,
+  Param,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -270,14 +278,23 @@ export class WalletController {
   }
 
   @Get('/transactions/:walletId')
-  async retrieveTransactionsForWallet(@Param('walletId') walletId: string) {
-    try {
-      const transactions = await this.walletService.getTransactions(walletId);
+  async retrieveTransactionsForWallet(
+    @Param('walletId') walletId: string,
+    @Query('take') take: number,
+    @Query('skip') skip: number,
+  ) {
+    this.logger.log('take and skip', take, skip);
+    try { 
+      const transactions = await this.walletService.getTransactions(
+        walletId,
+        take,
+        skip,
+      );
 
       return {
         success: true,
         message: 'Transactions found',
-        data: transactions,
+        transactions,
       };
     } catch (error) {
       return {
