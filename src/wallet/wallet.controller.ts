@@ -1,5 +1,9 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
-import { createWalletDto, depositFundsDto } from './dto/wallet.dto';
+import {
+  CreateWalletDto,
+  DepositFundsDto,
+  WithDrawFundsDto,
+} from './dto/wallet.dto';
 import { WalletService } from './wallet.service';
 
 @Controller('wallet')
@@ -7,7 +11,7 @@ export class WalletController {
   private readonly logger = new Logger();
   constructor(private walletService: WalletService) {}
   @Post('/create')
-  async createWallet(@Body() createWalletDto: createWalletDto) {
+  async createWallet(@Body() createWalletDto: CreateWalletDto) {
     try {
       this.logger.log('create wallet endpoint hit');
       const wallet = await this.walletService.createWallet(createWalletDto);
@@ -27,7 +31,7 @@ export class WalletController {
   }
 
   @Post('/deposit')
-  async depositFunds(@Body() depositFundsDto: depositFundsDto) {
+  async depositFunds(@Body() depositFundsDto: DepositFundsDto) {
     this.logger.log('deposit funds endpoint hit');
     try {
       const deposit = await this.walletService.depositFunds(depositFundsDto);
@@ -41,6 +45,26 @@ export class WalletController {
       return {
         success: false,
         message: 'error depositing funds',
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('/withdraw')
+  async withDrawFundsDto(@Body() withdrawFundsDto: WithDrawFundsDto) {
+    this.logger.log('withdrawing funds endpoint hit');
+    try {
+      const withdrawal = await this.walletService.withDrawFundsDto(withdrawFundsDto);
+      return {
+        success: true,
+        message: 'Funds withdrawn successfully',
+        data: withdrawal.balance,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      return {
+        success: false,
+        message: 'error withdrawing funds',
         error: error.message,
       };
     }

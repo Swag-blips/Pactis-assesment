@@ -1,13 +1,22 @@
 import { IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 
-export class createWalletDto {
+export class CreateWalletDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
   balance: number;
 }
 
-export class depositFundsDto {
+export class DepositFundsDto {
+  @IsNumber()
+  @Min(1)
+  amount: number;
+
+  @IsUUID()
+  walletId: string;
+}
+
+export class WithDrawFundsDto {
   @IsNumber()
   @Min(1)
   amount: number;
