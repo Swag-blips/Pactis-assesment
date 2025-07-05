@@ -10,11 +10,11 @@ export class WalletController {
   async createWallet(@Body() createWalletDto: createWalletDto) {
     try {
       this.logger.log('create wallet endpoint hit');
-      const wallet = this.walletService.createWallet(createWalletDto);
+      const wallet = await this.walletService.createWallet(createWalletDto);
       return {
         success: true,
         message: 'Wallet created successfully',
-        data: wallet,
+        data: wallet.id,
       };
     } catch (error) {
       this.logger.error(error);
@@ -27,5 +27,22 @@ export class WalletController {
   }
 
   @Post('/deposit')
-  async depositFunds(@Body() depositFundsDto: depositFundsDto) {}
+  async depositFunds(@Body() depositFundsDto: depositFundsDto) {
+    this.logger.log('deposit funds endpoint hit');
+    try {
+      const deposit = await this.walletService.depositFunds(depositFundsDto);
+      return {
+        success: true,
+        message: 'Funds deposited successfully',
+        data: deposit.balance,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      return {
+        success: false,
+        message: 'error depositing funds',
+        error: error.message,
+      };
+    }
+  }
 }

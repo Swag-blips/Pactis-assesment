@@ -9,6 +9,7 @@ export class createWalletDto {
 
 export class depositFundsDto {
   @IsNumber()
+  @Min(1)
   amount: number;
 
   @IsUUID()
