@@ -3,6 +3,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -17,6 +18,8 @@ import { BullModule } from '@nestjs/bullmq';
         port: Number(process.env.REDIS_PORT),
       },
     }),
+    
+
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.PG_HOST,

@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  nestapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:pgpassword@db:5432/mydb" 
+    depends_on:
+      - db
+      - redis
+    
+  redis:
+    image: redis:alpine
+    container_name: redis_db
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_db:/data
+    restart: always
+
   db:
     image: postgres:15
     restart: always

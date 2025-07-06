@@ -8,10 +8,25 @@ import { IdempotencyLog } from './entities/idempotency.entity';
 
 import { BullModule } from '@nestjs/bullmq';
 import { WalletProcessor } from './jobs/wallet.processor';
+import { CacheableMemory, Keyv } from 'cacheable';
+import { CacheModule } from '@nestjs/cache-manager';
+import { createKeyv } from '@keyv/redis';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Wallet, Transaction, IdempotencyLog]),
+    CacheModule.registerAsync({
+      useFactory: async () => {
+        return {
+          stores: [
+            new Keyv({
+              store: new CacheableMemory({ ttl: 60000, lruSize: 5000 }),
+            }),
+            createKeyv('redis://localhost:6379'),
+          ],
+        };
+      },
+    }),
     BullModule.registerQueue({
       name: 'wallet-queue',
       connection: {

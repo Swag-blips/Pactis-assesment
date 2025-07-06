@@ -1,6 +1,6 @@
 import {
-  BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -8,7 +8,6 @@ import {
 import {
   CreateWalletDto,
   DepositFundsDto,
-  GetTransactionsDto,
   TransferFundsDto,
   WithDrawFundsDto,
 } from './dto/wallet.dto';
@@ -19,6 +18,8 @@ import { Wallet } from './entities/wallet.entity';
 import { Repository } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
 import { IdempotencyLog } from './entities/idempotency.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class WalletService {
@@ -30,6 +31,7 @@ export class WalletService {
     @InjectRepository(IdempotencyLog)
     private idempotencyLogRepository: Repository<IdempotencyLog>,
     @InjectQueue('wallet-queue') private walletQueue: Queue,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
   async createWallet(createWalletDto: CreateWalletDto): Promise<Wallet> {
     const newWallet = this.walletRepository.create({
@@ -38,6 +40,10 @@ export class WalletService {
 
     const savedWallet = await this.walletRepository.save(newWallet);
     this.logger.log(`Wallet created with ID: ${savedWallet.id}`);
+    await this.cacheManager.set(
+      `wallets:${savedWallet.id}`,
+      JSON.stringify(savedWallet),
+    );
     return savedWallet;
   }
 
@@ -166,7 +172,7 @@ export class WalletService {
     });
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
-    } 
+    }
     try {
       await this.idempotencyLogRepository.insert({
         transactionId: clientTransactionId,
@@ -219,6 +225,13 @@ export class WalletService {
   ): Promise<{ data: Transaction[]; total: number }> {
     const wallet = await this.findWalletOrThrow(walletId);
 
+    const cacheKey = `transactions:${walletId}:take:${take || 10}:skip:${skip || 0}`;
+    const cachedTransactions: string | undefined =
+      await this.cacheManager.get(cacheKey);
+    if (cachedTransactions) {
+      this.logger.log('serving from cache');
+      return JSON.parse(cachedTransactions);
+    }
     const [transactions, total] = await this.transactionRepository.findAndCount(
       {
         where: [
@@ -230,6 +243,11 @@ export class WalletService {
         take: take || 10,
         skip: skip || 0,
       },
+    );
+
+    await this.cacheManager.set(
+      cacheKey,
+      JSON.stringify({ data: transactions, total }),
     );
     this.logger.log('transactions', transactions);
     return { data: transactions, total };

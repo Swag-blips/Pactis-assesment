@@ -103,12 +103,12 @@ export class WalletController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Deposit amount must be greater than zero',
+    description: 'Invalid request body',
     schema: {
       example: {
-        success: false,
-        message: 'error depositing funds',
-        error: 'Deposit amount must be greater than zero',
+        error: 'Bad request',
+        message: ['property should exist'],
+        statusCode: 400,
       },
     },
   })
@@ -166,12 +166,12 @@ export class WalletController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Withdraw amount must be greater than zero',
+    description: 'Invalid request body',
     schema: {
       example: {
-        success: false,
-        message: 'error withdrawing funds',
-        error: 'Withdraw amount must be greater than zero',
+        error: 'Bad request',
+        message: ['property should exist'],
+        statusCode: 400,
       },
     },
   })
@@ -230,22 +230,22 @@ export class WalletController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Transfer amount must be greater than zero',
+    description: 'Invalid request body',
     schema: {
       example: {
-        success: false,
-        message: 'error transfering funds',
-        error: 'Transfer amount must be greater than zero',
+        error: 'Bad request',
+        message: ['property should exist'],
+        statusCode: 400,
       },
     },
   })
   @ApiNotFoundResponse({
-    description: 'Sender or receiver wallet not found',
+    description: ' wallet not found',
     schema: {
       example: {
         success: false,
         message: 'error transfering funds',
-        error: 'Sender or receiver wallet not found',
+        error: 'wallet not found',
       },
     },
   })

@@ -122,8 +122,8 @@ export class WalletProcessor extends WorkerHost {
               },
             } as any,
           },
-        );
-      });
+        );  
+      }); 
 
       this.logger.log(
         `Transfer completed for sender ${senderWalletId} to receiver ${receiverWalletId}`,
