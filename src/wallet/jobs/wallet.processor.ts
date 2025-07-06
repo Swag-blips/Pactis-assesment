@@ -5,13 +5,20 @@ import { Repository } from 'typeorm';
 import { Wallet } from '../entities/wallet.entity';
 import { Transaction } from '../entities/transaction.entity';
 import { IdempotencyLog } from '../entities/idempotency.entity';
-import { BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 
 import {
   DepositJobData,
   WithdrawalJobData,
   TransferJobData,
 } from '../types/types';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Processor('wallet-queue', { concurrency: 5 })
 export class WalletProcessor extends WorkerHost {
@@ -23,6 +30,7 @@ export class WalletProcessor extends WorkerHost {
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(IdempotencyLog)
     private idempotencyLogRepository: Repository<IdempotencyLog>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super();
   }
@@ -99,6 +107,8 @@ export class WalletProcessor extends WorkerHost {
         );
 
         await em.save([senderWallet, receiverWallet]);
+        await this.invalidateTransactionCache(senderWallet.id);
+        await this.invalidateTransactionCache(receiverWallet.id);
 
         transaction.status = 'SUCCESS';
         await em.save(transaction);
@@ -122,8 +132,8 @@ export class WalletProcessor extends WorkerHost {
               },
             } as any,
           },
-        );  
-      }); 
+        );
+      });
 
       this.logger.log(
         `Transfer completed for sender ${senderWalletId} to receiver ${receiverWalletId}`,
@@ -185,6 +195,8 @@ export class WalletProcessor extends WorkerHost {
         );
         await em.save(wallet);
 
+        await this.cacheManager.del(`wallets:${wallet.id}`);
+
         transaction.status = 'SUCCESS';
         await em.save(transaction);
 
@@ -223,6 +235,12 @@ export class WalletProcessor extends WorkerHost {
 
       throw err;
     }
+  }
+
+  private async invalidateTransactionCache(walletId: string): Promise<void> {
+    const cacheKey = `transactions:${walletId}:all`;
+    await this.cacheManager.del(cacheKey);
+    this.logger.log(`Cache invalidated for wallet ${walletId}`);
   }
 
   async handleWithdrawalJob(data: WithdrawalJobData) {
@@ -264,6 +282,8 @@ export class WalletProcessor extends WorkerHost {
           (currentBalance - withdrawAmount).toFixed(2),
         );
         await em.save(wallet);
+        // Invalidate wallet cache after balance update
+        await this.cacheManager.del(`wallets:${wallet.id}`);
 
         transaction.status = 'SUCCESS';
         await em.save(transaction);

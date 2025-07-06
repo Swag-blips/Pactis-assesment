@@ -11,6 +11,8 @@ import { WalletProcessor } from './jobs/wallet.processor';
 import { CacheableMemory, Keyv } from 'cacheable';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { createKeyv } from '@keyv/redis';
         };
       },
     }),
+
     BullModule.registerQueue({
       name: 'wallet-queue',
       connection: {
@@ -42,8 +45,23 @@ import { createKeyv } from '@keyv/redis';
         removeOnFail: true,
       },
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
   ],
   controllers: [WalletController],
-  providers: [WalletService, WalletProcessor],
+  providers: [
+    WalletService,
+    WalletProcessor,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class WalletModule {}

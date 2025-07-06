@@ -224,34 +224,36 @@ export class WalletService {
     skip: number,
   ): Promise<{ data: Transaction[]; total: number }> {
     const wallet = await this.findWalletOrThrow(walletId);
+    const cacheKey = `transactions:${walletId}:all`;
 
-    const cacheKey = `transactions:${walletId}:take:${take || 10}:skip:${skip || 0}`;
-    const cachedTransactions: string | undefined =
+    const cachedData: string | undefined =
       await this.cacheManager.get(cacheKey);
-    if (cachedTransactions) {
-      this.logger.log('serving from cache');
-      return JSON.parse(cachedTransactions);
-    }
-    const [transactions, total] = await this.transactionRepository.findAndCount(
-      {
+    let transactions: Transaction[];
+
+    if (cachedData) {
+      this.logger.log('serving all transactions from cache');
+      transactions = JSON.parse(cachedData);
+    } else {
+      transactions = await this.transactionRepository.find({
         where: [
           { receiverWallet: { id: wallet.id } },
           { senderWallet: { id: wallet.id } },
         ],
         relations: ['senderWallet', 'receiverWallet'],
         order: { timestamp: 'DESC' },
-        take: take || 10,
-        skip: skip || 0,
-      },
-    );
+      });
 
-    await this.cacheManager.set(
-      cacheKey,
-      JSON.stringify({ data: transactions, total }),
-    );
-    this.logger.log('transactions', transactions);
-    return { data: transactions, total };
+      await this.cacheManager.set(cacheKey, JSON.stringify(transactions));
+
+      this.logger.log('fetched all transactions from DB and cached');
+    }
+
+    const total = transactions.length;
+    const paginated = transactions.slice(skip, skip + take);
+
+    return { data: paginated, total };
   }
+
   private async findWalletOrThrow(walletId: string): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({
       where: { id: walletId },

@@ -21,11 +21,11 @@ import {
 import {
   CreateWalletDto,
   DepositFundsDto,
-  GetTransactionsDto,
   TransferFundsDto,
   WithDrawFundsDto,
 } from './dto/wallet.dto';
 import { WalletService } from './wallet.service';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Wallet')
 @ApiBearerAuth()
@@ -35,6 +35,7 @@ export class WalletController {
   constructor(private walletService: WalletService) {}
 
   @Post('/create')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a new wallet' })
   @ApiBody({ type: CreateWalletDto })
   @ApiCreatedResponse({
@@ -87,6 +88,7 @@ export class WalletController {
   }
 
   @Post('/deposit')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Deposit funds into a wallet' })
   @ApiBody({ type: DepositFundsDto })
   @ApiResponse({
@@ -150,6 +152,7 @@ export class WalletController {
   }
 
   @Post('/withdraw')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Withdraw funds from a wallet' })
   @ApiBody({ type: WithDrawFundsDto })
   @ApiResponse({
@@ -214,6 +217,7 @@ export class WalletController {
   }
 
   @Post('/transfer')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Transfer funds between wallets' })
   @ApiBody({ type: TransferFundsDto })
   @ApiResponse({

@@ -9,7 +9,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
   imports: [
     WalletModule,
     ConfigModule.forRoot({
-      isGlobal: true,
+      isGlobal: true,  
       envFilePath: '.env',
     }),
     BullModule.forRoot({
@@ -18,7 +18,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
         port: Number(process.env.REDIS_PORT),
       },
     }),
-    
 
     TypeOrmModule.forRoot({
       type: 'postgres',
