@@ -112,7 +112,7 @@ export class WalletService {
       return { status: 'success', transactionId: clientTransactionId };
     }
 
-    try { 
+    try {
       await this.idempotencyLogRepository.insert({
         transactionId: clientTransactionId,
         status: 'PROCESSING',
@@ -166,7 +166,7 @@ export class WalletService {
     });
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
-    }
+    } 
     try {
       await this.idempotencyLogRepository.insert({
         transactionId: clientTransactionId,

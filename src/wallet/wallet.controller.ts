@@ -51,9 +51,9 @@ export class WalletController {
     description: 'Invalid request body',
     schema: {
       example: {
-        success: false,
-        message: 'Error creating wallet',
-        error: 'Validation failed',
+        error: 'Bad request',
+        message: ['property should exist'],
+        statusCode: 400,
       },
     },
   })
@@ -264,11 +264,7 @@ export class WalletController {
     try {
       const transfer = await this.walletService.transferFunds(transferFundsDto);
       return {
-        status: 'queued',
-        message: 'Transfer request received and is being processed.',
-        transactionId: transfer.transactionId,
-        expectedState:
-          'Check transaction status with this ID after a few seconds.',
+        ...transfer,
       };
     } catch (error) {
       this.logger.error(error);
