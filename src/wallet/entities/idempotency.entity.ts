@@ -7,12 +7,12 @@ import {
 } from 'typeorm';
 
 @Entity()
-@Index(['clientTransactionId'], { unique: true })
 export class IdempotencyLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ unique: true })
+  @Index()
   clientTransactionId: string;
 
   @Column()
