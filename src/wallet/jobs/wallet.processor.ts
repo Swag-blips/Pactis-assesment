@@ -14,7 +14,7 @@ import {
 
 import {
   DepositJobData,
-  WithdrawalJobData,
+  WithdrawalJobData, 
   TransferJobData,
 } from '../types/types';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
