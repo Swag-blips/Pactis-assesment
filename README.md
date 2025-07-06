@@ -1,98 +1,168 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Wallet System API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This project implements a robust backend API for a wallet application, designed to address critical backend engineering concerns such as concurrency, latency, idempotency, deadlock prevention, and message queue integration. The system is built using **NestJS** (Node.js + TypeScript), with support for **MySQL/PostgreSQL** as the database, **Redis** for caching, and **Bull** (backed by Redis) for asynchronous job processing.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+1. **Wallet Creation**
+   - Create wallets with a unique ID and an initial balance (default: 0).
+2. **Deposit Funds**
+   - Deposit funds into a wallet with safe handling of concurrent deposits.
+3. **Withdraw Funds**
+   - Withdraw funds, preventing overdraws and handling concurrent withdrawals.
+4. **Transfer Funds**
+   - Transfer funds atomically between wallets, with idempotency for repeated requests.
+5. **Transaction History**
+   - Retrieve a paginated list of all wallet transactions, including metadata.
 
-```bash
-$ pnpm install
-```
+---
 
-## Compile and run the project
+## Advanced Features
 
-```bash
-# development
-$ pnpm run start
+- **Concurrency & Deadlock Prevention:** Uses database and application-level mechanisms (e.g., row-level locking, transaction management) to ensure safe concurrent operations.
+- **Message Queues:** Integrates Bull (with Redis) for asynchronous transaction processing and retry logic.
+- **Caching:** Uses Redis to cache wallet balances and transaction histories, with cache invalidation on updates.
+- **Latency Optimization:** Optimized APIs for low latency, including batch processing for large transaction histories.
 
-# watch mode
-$ pnpm run start:dev
+---
 
-# production mode
-$ pnpm run start:prod
-```
+## Technical Stack
 
-## Run tests
+- **Backend Framework:** [NestJS](https://nestjs.com/) (Node.js + TypeScript)
+- **Database:** MySQL or PostgreSQL (via TypeORM)
+- **Caching:** Redis
+- **Message Queue:** Bull (with Redis)
+- **Testing:** Jest
 
-```bash
-# unit tests
-$ pnpm run test
+---
 
-# e2e tests
-$ pnpm run test:e2e
+## Setup Instructions
 
-# test coverage
-$ pnpm run test:cov
-```
+### Prerequisites
 
-## Deployment
+- Node.js (v16+)
+- pnpm (or npm/yarn)
+- Docker & Docker Compose (for local development)
+- Redis
+- MySQL or PostgreSQL
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Installation
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. **Clone the repository:**
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+   ```bash
+   git clone <repo-url>
+   cd pactis-assessment
+   ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+2. **Install dependencies:**
 
-## Resources
+   ```bash
+   pnpm install
+   ```
 
-Check out a few resources that may come in handy when working with NestJS:
+3. **Configure environment variables:**
+   - Copy `.env.example` to `.env` and fill in your database, Redis, and Bull configurations.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+4. **Run with Docker Compose (recommended):**
 
-## Support
+   ```bash
+   docker-compose up --build
+   ```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+5. **Run locally (without Docker):**
+   - Start your database and Redis.
+   - Run migrations (if any).
+   - Start the server:
+     ```bash
+     pnpm start:dev
+     ```
 
-## Stay in touch
+---
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## API Documentation
+
+- **Swagger UI:** Available at `/api` when the server is running.
+- **Endpoints:**
+  - `POST /wallets` - Create a wallet
+  - `POST /wallets/:id/deposit` - Deposit funds
+  - `POST /wallets/:id/withdraw` - Withdraw funds
+  - `POST /wallets/transfer` - Transfer funds
+  - `GET /wallets/:id/transactions` - Get transaction history
+
+Refer to Swagger for detailed request/response schemas.
+
+---
+
+## Database Schema
+
+- **Wallets Table**
+  - `id` (PK, unique)
+  - `balance`
+  - `created_at`
+  - Indexes: `id` (unique)
+
+- **Transactions Table**
+  - `id` (PK, unique, UUID)
+  - `wallet_id` (FK)
+  - `type` (deposit, withdrawal, transfer)
+  - `amount`
+  - `status`
+  - `created_at`
+  - Indexes: `wallet_id`, `created_at`
+
+- **Idempotency Table**
+  - `id` (PK, unique, transaction ID)
+  - `status`
+  - `created_at`
+
+**Constraints:**
+
+- Prevent negative balances (application logic).
+- Unique transaction IDs for idempotency.
+
+---
+
+## Testing
+
+- **Unit Tests:** Located in `src/wallet/wallet.service.spec.ts`
+- **Integration Tests:** Located in `test/app.e2e-spec.ts`
+- **Run tests:**
+  ```bash
+  pnpm test
+  ```
+
+---
+
+## Assumptions & Design Decisions
+
+- **Idempotency:** Each transfer uses a unique transaction ID to prevent duplicate processing.
+- **Concurrency:** Uses database transactions and row-level locking to prevent race conditions.
+- **Deadlock Prevention:** Locks are acquired in a consistent order; retries are implemented for deadlocks.
+- **Asynchronous Processing:** Transfers and withdrawals are queued and processed by Bull for reliability.
+- **Caching:** Redis is used for fast reads; cache is invalidated on balance/transaction updates.
+- **Pagination:** Transaction history endpoints are paginated for performance.
+
+---
+
+## Bonus Features
+
+- **API Rate Limiting:** Wallet endpoints are rate limited
+- **Dockerized:** The app is fully containerized for easy deployment.
+
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT
+
+---
+
+**Note:**
+
+- For detailed API usage, see the Swagger docs.
+- For any questions, please open an issue
