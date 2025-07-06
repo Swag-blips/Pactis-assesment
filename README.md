@@ -76,7 +76,6 @@ This project implements a robust backend API for a wallet application, designed 
 
 5. **Run locally (without Docker):**
    - Start your database and Redis.
-   - Run migrations (if any).
    - Start the server:
      ```bash
      pnpm start:dev

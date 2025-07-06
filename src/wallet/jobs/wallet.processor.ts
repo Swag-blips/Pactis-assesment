@@ -14,7 +14,7 @@ import {
 
 import {
   DepositJobData,
-  WithdrawalJobData, 
+  WithdrawalJobData,
   TransferJobData,
 } from '../types/types';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -63,9 +63,14 @@ export class WalletProcessor extends WorkerHost {
         where: { id: transactionId },
       });
       if (!transaction) throw new NotFoundException('Transaction not found');
+      if (transaction.type !== 'transfer') {
+        throw new BadRequestException(
+          `Invalid transaction type: expected 'transfer', got '${transaction.type}'`,
+        );
+      }
 
       const idempotency = await this.idempotencyLogRepository.findOne({
-        where: { transactionId: clientTransactionId },
+        where: { clientTransactionId },
       });
       if (idempotency?.status === 'SUCCESS') {
         this.logger.log(`Already processed`);
@@ -115,7 +120,7 @@ export class WalletProcessor extends WorkerHost {
 
         await em.update(
           IdempotencyLog,
-          { transactionId: clientTransactionId },
+          { clientTransactionId },
           {
             status: 'SUCCESS',
             responsePayload: {
@@ -144,16 +149,10 @@ export class WalletProcessor extends WorkerHost {
         `Transfer failed for tx ${transactionId}: ${err.message}`,
       );
 
-      await this.transactionRepository.update(transactionId, {
-        status: 'FAILED',
-      });
-
-      await this.idempotencyLogRepository.update(
-        { transactionId: clientTransactionId },
-        {
-          status: 'FAILED',
-          responsePayload: { error: err.message },
-        },
+      await this.markTransactionAsFailed(
+        transactionId,
+        clientTransactionId,
+        err,
       );
 
       throw err;
@@ -168,9 +167,14 @@ export class WalletProcessor extends WorkerHost {
         where: { id: transactionId },
       });
       if (!transaction) throw new NotFoundException('Transaction not found');
+      if (transaction.type !== 'deposit') {
+        throw new BadRequestException(
+          `Invalid transaction type: expected 'deposit', got '${transaction.type}'`,
+        );
+      }
 
       const idempotency = await this.idempotencyLogRepository.findOne({
-        where: { transactionId: clientTransactionId },
+        where: { clientTransactionId },
       });
       if (idempotency?.status === 'SUCCESS') {
         this.logger.log(`Already processed`);
@@ -202,7 +206,7 @@ export class WalletProcessor extends WorkerHost {
 
         await em.update(
           IdempotencyLog,
-          { transactionId: clientTransactionId },
+          { clientTransactionId },
           {
             status: 'SUCCESS',
             responsePayload: {
@@ -221,16 +225,10 @@ export class WalletProcessor extends WorkerHost {
         `Deposit failed for tx ${transactionId}: ${err.message}`,
       );
 
-      await this.transactionRepository.update(transactionId, {
-        status: 'FAILED',
-      });
-
-      await this.idempotencyLogRepository.update(
-        { transactionId: clientTransactionId },
-        {
-          status: 'FAILED',
-          responsePayload: { error: err.message },
-        },
+      await this.markTransactionAsFailed(
+        transactionId,
+        clientTransactionId,
+        err,
       );
 
       throw err;
@@ -252,9 +250,14 @@ export class WalletProcessor extends WorkerHost {
         where: { id: transactionId },
       });
       if (!transaction) throw new NotFoundException('Transaction not found');
+      if (transaction.type !== 'withdrawal') {
+        throw new BadRequestException(
+          `Invalid transaction type: expected 'withdrawal', got '${transaction.type}'`,
+        );
+      }
 
       const idempotency = await this.idempotencyLogRepository.findOne({
-        where: { transactionId: clientTransactionId },
+        where: { clientTransactionId },
       });
 
       if (idempotency?.status === 'SUCCESS') {
@@ -282,7 +285,7 @@ export class WalletProcessor extends WorkerHost {
           (currentBalance - withdrawAmount).toFixed(2),
         );
         await em.save(wallet);
-        // Invalidate wallet cache after balance update
+
         await this.cacheManager.del(`wallets:${wallet.id}`);
 
         transaction.status = 'SUCCESS';
@@ -290,7 +293,7 @@ export class WalletProcessor extends WorkerHost {
 
         await em.update(
           IdempotencyLog,
-          { transactionId: clientTransactionId },
+          { clientTransactionId },
           {
             status: 'SUCCESS',
             responsePayload: {
@@ -308,21 +311,39 @@ export class WalletProcessor extends WorkerHost {
       this.logger.error(
         `Withdrawal failed for tx ${transactionId}: ${err.message}`,
       );
-
-      await this.transactionRepository.update(transactionId, {
-        status: 'FAILED',
-      });
-
-      await this.idempotencyLogRepository.update(
-        { transactionId: clientTransactionId },
-        {
-          status: 'FAILED',
-          responsePayload: { error: err.message },
-        },
+      await this.markTransactionAsFailed(
+        transactionId,
+        clientTransactionId,
+        err,
       );
 
       throw err;
     }
+  }
+
+  private async markTransactionAsFailed(
+    transactionId: string,
+    clientTransactionId: string,
+    error: Error,
+  ) {
+    const payload = {
+      errorMessage: error.message,
+      errorName: error.name,
+    };
+    await this.transactionRepository.update(transactionId, {
+      status: 'FAILED',
+      errorMessage: error.message,
+    });
+
+    await this.idempotencyLogRepository.update(
+      { clientTransactionId },
+      {
+        status: 'FAILED',
+        responsePayload: payload as any,
+      },
+    );
+
+    this.logger.error(`Transaction ${transactionId} failed: ${error.message}`);
   }
 
   @OnWorkerEvent('completed')

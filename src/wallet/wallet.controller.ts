@@ -118,9 +118,9 @@ export class WalletController {
     description: 'Wallet not found',
     schema: {
       example: {
-        success: false,
-        message: 'error depositing funds',
-        error: 'Wallet not found',
+        message: 'Wallet not found',
+        error: 'Not Found',
+        statusCode: 404,
       },
     },
   })
@@ -143,11 +143,7 @@ export class WalletController {
       };
     } catch (error) {
       this.logger.error(error);
-      return {
-        success: false,
-        message: 'error depositing funds',
-        error: error.message,
-      };
+      throw error;
     }
   }
 
@@ -161,10 +157,7 @@ export class WalletController {
     schema: {
       example: {
         status: 'queued',
-        message: 'Withdrawal request received and is being processed.',
         transactionId: 'uuid-string',
-        expectedState:
-          'Check transaction status with this ID after a few seconds.',
       },
     },
   })
@@ -182,9 +175,9 @@ export class WalletController {
     description: 'Wallet not found',
     schema: {
       example: {
-        success: false,
-        message: 'error withdrawing funds',
-        error: 'Wallet not found',
+        message: 'Wallet not found',
+        error: 'Not Found',
+        statusCode: 404,
       },
     },
   })
@@ -208,11 +201,7 @@ export class WalletController {
       };
     } catch (error) {
       this.logger.error(error);
-      return {
-        success: false,
-        message: 'error withdrawing funds',
-        error: error.message,
-      };
+      throw error;
     }
   }
 
@@ -226,10 +215,7 @@ export class WalletController {
     schema: {
       example: {
         status: 'queued',
-        message: 'Transfer request received and is being processed.',
         transactionId: 'uuid-string',
-        expectedState:
-          'Check transaction status with this ID after a few seconds.',
       },
     },
   })
@@ -247,9 +233,9 @@ export class WalletController {
     description: ' wallet not found',
     schema: {
       example: {
-        success: false,
-        message: 'error transfering funds',
-        error: 'wallet not found',
+        message: 'Receiver wallet not found',
+        error: 'Not Found',
+        statusCode: 404,
       },
     },
   })
@@ -271,22 +257,59 @@ export class WalletController {
         ...transfer,
       };
     } catch (error) {
-      this.logger.error(error);
-      return {
-        success: false,
-        message: 'error transfering funds',
-        error: error.message,
-      };
+      this.logger.error(error.message);
+      throw error;
     }
   }
-
   @Get('/transactions/:walletId')
+  @ApiOperation({ summary: 'Retrieve transactions for a wallet' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions retrieved successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Transactions found',
+        transactions: {
+          data: [
+            {
+              id: 'txn-1234',
+              type: 'deposit',
+              status: 'SUCCESS',
+              amount: 1000,
+              createdAt: '2024-07-06T10:00:00.000Z',
+            },
+          ],
+          total: 1,
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid take/skip parameters',
+    schema: {
+      example: {
+        success: false,
+        message: 'error retrieving transactions',
+        error: 'take must be a number',
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Wallet not found',
+    schema: {
+      example: {
+        message: 'Wallet not found',
+        error: 'Not Found',
+        statusCode: 404,
+      },
+    },
+  })
   async retrieveTransactionsForWallet(
     @Param('walletId') walletId: string,
     @Query('take') take: number,
     @Query('skip') skip: number,
   ) {
-    this.logger.log('take and skip', take, skip);
     try {
       const transactions = await this.walletService.getTransactions(
         walletId,
@@ -300,11 +323,8 @@ export class WalletController {
         transactions,
       };
     } catch (error) {
-      return {
-        success: false,
-        message: 'error transfering funds',
-        error: error.message,
-      };
+      this.logger.error(error.message);
+      throw error;
     }
   }
 }
