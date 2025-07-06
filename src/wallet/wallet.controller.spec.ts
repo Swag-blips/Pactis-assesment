@@ -10,7 +10,6 @@ describe('WalletController', () => {
     const mockWalletService = {
       createWallet: jest.fn(),
       getBalance: jest.fn(),
-      // Add any other method your controller uses
     };
 
     const module: TestingModule = await Test.createTestingModule({

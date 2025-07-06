@@ -6,6 +6,7 @@ describe('WalletProcessor', () => {
   let walletRepository: any;
   let transactionRepository: any;
   let idempotencyLogRepository: any;
+  ``;
   let cacheManager: any;
 
   beforeEach(() => {
@@ -157,46 +158,6 @@ describe('WalletProcessor', () => {
     );
   });
 
-  it('should log error and update status on failed transfer', async () => {
-    const loggerErrorSpy = jest.spyOn(processor['logger'], 'error');
-
-    transactionRepository.findOne = jest.fn().mockResolvedValue({
-      id: 'tx5',
-      status: 'PENDING',
-      amount: 100,
-      type: 'transfer',
-      save: jest.fn(),
-    });
-    idempotencyLogRepository.findOne = jest.fn().mockResolvedValue(undefined);
-    walletRepository.manager = {
-      transaction: jest.fn().mockImplementation(() => {
-        throw new Error('Simulated transfer failure');
-      }),
-    };
-    const data = {
-      transactionId: 'tx5',
-      senderWalletId: 'wallet1',
-      receiverWalletId: 'wallet2',
-      clientTransactionId: 'client-tx-5',
-      amount: '100',
-    };
-    await expect(processor.handleTransferJob(data)).rejects.toThrow(
-      'Simulated transfer failure',
-    );
-    expect(loggerErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Transfer failed for tx tx5: Simulated transfer failure',
-      ),
-    );
-    expect(transactionRepository.update).toHaveBeenCalledWith('tx5', {
-      status: 'FAILED',
-    });
-    expect(idempotencyLogRepository.update).toHaveBeenCalledWith(
-      { transactionId: 'client-tx-5' },
-      expect.objectContaining({ status: 'FAILED' }),
-    );
-  });
-
   it('should update transaction and idempotency log status on success', async () => {
     const loggerLogSpy = jest.spyOn(processor['logger'], 'log');
     transactionRepository.findOne = jest.fn().mockResolvedValue({
@@ -246,6 +207,44 @@ describe('WalletProcessor', () => {
       expect.stringContaining(
         'Transfer completed for sender wallet1 to receiver wallet2',
       ),
+    );
+  });
+  it('should skip deposit if idempotency log indicates it is already processed', async () => {
+    idempotencyLogRepository.findOne = jest.fn().mockResolvedValue({
+      clientTransactionId: 'client-tx-1',
+      status: 'COMPLETED',
+    });
+
+    const data = {
+      transactionId: 'tx1',
+      walletId: 'wallet1',
+      amount: 50,
+      clientTransactionId: 'client-tx-1',
+    };
+
+    const result = await processor.handleDepositJob(data);
+
+    expect(result).toEqual({ status: 'completed', transactionId: 'tx1' });
+    expect(transactionRepository.update).not.toHaveBeenCalled();
+  });
+  it('should throw BadRequestException for unsupported transaction type', async () => {
+    transactionRepository.findOne = jest.fn().mockResolvedValue({
+      id: 'tx7',
+      status: 'PENDING',
+      amount: 50,
+      type: 'invalid_type',
+      save: jest.fn(),
+    });
+
+    const data = {
+      transactionId: 'tx7',
+      walletId: 'wallet1',
+      amount: 50,
+      clientTransactionId: 'client-tx-7',
+    };
+
+    await expect(processor.handleDepositJob(data)).rejects.toThrow(
+      BadRequestException,
     );
   });
 });

@@ -7,13 +7,13 @@ import {
 } from 'typeorm';
 
 @Entity()
-@Index(['transactionId'], { unique: true })
+@Index(['clientTransactionId'], { unique: true })
 export class IdempotencyLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ unique: true })
-  transactionId: string;
+  clientTransactionId: string;
 
   @Column()
   status: 'PROCESSING' | 'SUCCESS' | 'FAILED';

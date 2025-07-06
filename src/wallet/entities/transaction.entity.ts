@@ -11,7 +11,7 @@ import { Wallet } from './wallet.entity';
 export type TransactionType = 'deposit' | 'withdrawal' | 'transfer';
 
 @Entity()
-@Index(['senderWallet', 'receiverWallet'], { unique: true })
+@Index(['senderWallet', 'receiverWallet'])
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -31,6 +31,9 @@ export class Transaction {
   @ManyToOne(() => Wallet, { nullable: true })
   receiverWallet?: Wallet;
 
+  @Column({ type: 'text', nullable: true })
+  errorMessage?: string;
+  
   @CreateDateColumn()
   timestamp: Date;
 }

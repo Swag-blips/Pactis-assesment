@@ -55,14 +55,16 @@ export class WalletService {
     await this.findWalletOrThrow(walletId);
 
     const existing = await this.idempotencyLogRepository.findOne({
-      where: { transactionId: clientTransactionId },
+      where: { clientTransactionId },
     });
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
+    } else if (existing?.status === 'FAILED') {
+      return { status: 'failed', transactionId: clientTransactionId };
     }
     try {
       await this.idempotencyLogRepository.insert({
-        transactionId: clientTransactionId,
+        clientTransactionId,
         status: 'PROCESSING',
       });
     } catch (err) {
@@ -111,16 +113,18 @@ export class WalletService {
     await this.findWalletOrThrow(walletId);
 
     const existing = await this.idempotencyLogRepository.findOne({
-      where: { transactionId: clientTransactionId },
+      where: { clientTransactionId },
     });
 
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
+    } else if (existing?.status === 'FAILED') {
+      return { status: 'failed', transactionId: clientTransactionId };
     }
 
     try {
       await this.idempotencyLogRepository.insert({
-        transactionId: clientTransactionId,
+        clientTransactionId,
         status: 'PROCESSING',
       });
     } catch (err) {
@@ -163,19 +167,37 @@ export class WalletService {
 
   async transferFunds(
     transferFundsDto: TransferFundsDto,
-  ): Promise<{ status: string; transactionId: string }> {
+  ): Promise<{ status: string; transactionId: string; error?: any }> {
     const { senderWalletId, receiverWalletId, amount, clientTransactionId } =
       transferFundsDto;
 
-    const existing = await this.idempotencyLogRepository.findOne({
-      where: { transactionId: clientTransactionId },
+    const senderWallet = await this.walletRepository.findOne({
+      where: { id: senderWalletId },
     });
+    if (!senderWallet) throw new NotFoundException('Sender wallet not found');
+
+    const receiverWallet = await this.walletRepository.findOne({
+      where: { id: receiverWalletId },
+    });
+    if (!receiverWallet)
+      throw new NotFoundException('Receiver wallet not found');
+
+    const existing = await this.idempotencyLogRepository.findOne({
+      where: { clientTransactionId },
+    });
+
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
+    } else if (existing?.status === 'FAILED') {
+      return {
+        status: 'failed',
+        transactionId: clientTransactionId,
+        error: existing.responsePayload,
+      };
     }
     try {
       await this.idempotencyLogRepository.insert({
-        transactionId: clientTransactionId,
+        clientTransactionId,
         status: 'PROCESSING',
       });
     } catch (err) {
@@ -188,10 +210,15 @@ export class WalletService {
     const transaction = this.transactionRepository.create({
       amount,
       type: 'transfer',
-      senderWallet: { id: senderWalletId },
-      receiverWallet: { id: receiverWalletId },
+      senderWallet: {
+        id: senderWallet.id,
+      },
+      receiverWallet: {
+        id: receiverWallet.id,
+      },
       status: 'PENDING',
     });
+
     await this.transactionRepository.save(transaction);
 
     await this.walletQueue.add(
@@ -217,7 +244,6 @@ export class WalletService {
       transactionId: transaction.id,
     };
   }
-
   async getTransactions(
     walletId: string,
     take: number,
@@ -228,6 +254,7 @@ export class WalletService {
 
     const cachedData: string | undefined =
       await this.cacheManager.get(cacheKey);
+
     let transactions: Transaction[];
 
     if (cachedData) {
@@ -244,12 +271,20 @@ export class WalletService {
       });
 
       await this.cacheManager.set(cacheKey, JSON.stringify(transactions));
-
       this.logger.log('fetched all transactions from DB and cached');
     }
 
     const total = transactions.length;
+
+    take = Number(take) || 10;
+    skip = Number(skip) || 0;
+
+    if (take < 1) take = 10;
+    if (skip < 0) skip = 0;
+
     const paginated = transactions.slice(skip, skip + take);
+
+    console.log('transactions here', paginated);
 
     return { data: paginated, total };
   }

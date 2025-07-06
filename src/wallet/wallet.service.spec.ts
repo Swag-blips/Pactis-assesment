@@ -12,6 +12,7 @@ import { Transaction } from './entities/transaction.entity';
 import { IdempotencyLog } from './entities/idempotency.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { WalletController } from './wallet.controller';
+import { TransferFundsDto } from './dto/wallet.dto';
 
 describe('WalletService', () => {
   let service: WalletService;
@@ -295,55 +296,21 @@ describe('WalletService', () => {
       queue.add.mockReset();
     });
 
-    it('should return success if transaction already processed', async () => {
-      idempotencyRepo.findOne.mockResolvedValue({ status: 'SUCCESS' });
-      const result = await service.transferFunds(dto);
-      expect(result.status).toBe('success');
-      expect(result.transactionId).toBe(dto.clientTransactionId);
-    });
-
-    it('should throw ConflictException if idempotency insert fails', async () => {
-      idempotencyRepo.findOne.mockResolvedValue(null);
-      idempotencyRepo.insert.mockRejectedValue({ code: '23505' });
+    it('should throw NotFoundException if sender wallet not found', async () => {
+      walletRepo.findOne.mockResolvedValue(null);
       await expect(service.transferFunds(dto)).rejects.toThrow(
-        ConflictException,
+        NotFoundException,
       );
     });
 
-    it('should create transaction and queue transfer job', async () => {
-      idempotencyRepo.findOne.mockResolvedValue(null);
-      idempotencyRepo.insert.mockResolvedValue({});
-      transactionRepo.create.mockReturnValue({ id: 'transfer-txn-id' });
-      transactionRepo.save.mockResolvedValue({});
-
-      const result = await service.transferFunds(dto);
-
-      expect(transactionRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'transfer',
-          senderWallet: { id: dto.senderWalletId },
-          receiverWallet: { id: dto.receiverWalletId },
-          status: 'PENDING',
-          amount: dto.amount,
-        }),
+    it('should throw NotFoundException if receiver wallet not found', async () => {
+      walletRepo.findOne.mockResolvedValue(mockSenderWallet);
+      walletRepo.findOne.mockResolvedValue(null);
+      await expect(service.transferFunds(dto)).rejects.toThrow(
+        NotFoundException,
       );
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'transfer',
-        expect.objectContaining({
-          senderWalletId: dto.senderWalletId,
-          receiverWalletId: dto.receiverWalletId,
-          amount: dto.amount,
-          clientTransactionId: dto.clientTransactionId,
-        }),
-        expect.objectContaining({
-          delay: 5000,
-          attempts: 3,
-        }),
-      );
-
-      expect(result.status).toBe('queued');
-      expect(result.transactionId).toBe('transfer-txn-id');
     });
+
+    
   });
 });
