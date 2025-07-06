@@ -91,12 +91,14 @@ export class WalletController {
   @ApiBody({ type: DepositFundsDto })
   @ApiResponse({
     status: 200,
-    description: 'Funds deposited successfully',
+    description: 'Deposit request queued successfully',
     schema: {
       example: {
-        success: true,
-        message: 'Funds deposited successfully',
-        data: 1000.0,
+        status: 'queued',
+        message: 'Deposit request received and is being processed.',
+        transactionId: 'uuid-string',
+        expectedState:
+          'Check transaction status with this ID after a few seconds.',
       },
     },
   })
@@ -135,9 +137,7 @@ export class WalletController {
     try {
       const deposit = await this.walletService.depositFunds(depositFundsDto);
       return {
-        success: true,
-        message: 'Funds deposited successfully',
-        data: deposit.balance,
+        ...deposit,
       };
     } catch (error) {
       this.logger.error(error);
@@ -154,12 +154,14 @@ export class WalletController {
   @ApiBody({ type: WithDrawFundsDto })
   @ApiResponse({
     status: 200,
-    description: 'Funds withdrawn successfully',
+    description: 'Withdrawal request queued successfully',
     schema: {
       example: {
-        success: true,
-        message: 'Funds withdrawn successfully',
-        data: 900.0,
+        status: 'queued',
+        message: 'Withdrawal request received and is being processed.',
+        transactionId: 'uuid-string',
+        expectedState:
+          'Check transaction status with this ID after a few seconds.',
       },
     },
   })
@@ -199,9 +201,7 @@ export class WalletController {
       const withdrawal =
         await this.walletService.withDrawFunds(withdrawFundsDto);
       return {
-        success: true,
-        message: 'Funds withdrawn successfully',
-        data: withdrawal.balance,
+        ...withdrawal,
       };
     } catch (error) {
       this.logger.error(error);
@@ -218,16 +218,14 @@ export class WalletController {
   @ApiBody({ type: TransferFundsDto })
   @ApiResponse({
     status: 200,
-    description: 'Funds transferred successfully',
+    description: 'Transfer request queued successfully',
     schema: {
       example: {
-        success: true,
-        message: 'Funds transferred successfully',
-        data: {
-          transaction: { id: 'uuid', amount: 100, type: 'transfer' },
-          senderWallet: { id: 'uuid', balance: 900 },
-          receiverWallet: { id: 'uuid', balance: 1100 },
-        },
+        status: 'queued',
+        message: 'Transfer request received and is being processed.',
+        transactionId: 'uuid-string',
+        expectedState:
+          'Check transaction status with this ID after a few seconds.',
       },
     },
   })
@@ -262,11 +260,16 @@ export class WalletController {
     },
   })
   async transferFunds(@Body() transferFundsDto: TransferFundsDto) {
-    this.logger.log('withdrawing funds endpoint hit');
+    this.logger.log('transfer funds endpoint hit');
     try {
       const transfer = await this.walletService.transferFunds(transferFundsDto);
-
-      return { success: true, message: 'Transfer successful', data: transfer };
+      return {
+        status: 'queued',
+        message: 'Transfer request received and is being processed.',
+        transactionId: transfer.transactionId,
+        expectedState:
+          'Check transaction status with this ID after a few seconds.',
+      };
     } catch (error) {
       this.logger.error(error);
       return {
@@ -284,7 +287,7 @@ export class WalletController {
     @Query('skip') skip: number,
   ) {
     this.logger.log('take and skip', take, skip);
-    try { 
+    try {
       const transactions = await this.walletService.getTransactions(
         walletId,
         take,

@@ -25,7 +25,7 @@ export class DepositFundsDto {
   walletId: string;
 
   @IsUUID()
-  transactionId: string;
+  clientTransactionId: string;
 }
 
 export class WithDrawFundsDto {
@@ -41,7 +41,7 @@ export class WithDrawFundsDto {
   walletId: string;
 
   @IsUUID()
-  transactionId: string;
+  clientTransactionId: string;
 }
 
 export class TransferFundsDto {
@@ -72,7 +72,7 @@ export class TransferFundsDto {
     description: 'The UUID of the idempotency transaction.',
   })
   @IsUUID()
-  transactionId: string;
+  clientTransactionId: string;
 }
 
 export class GetTransactionsDto {

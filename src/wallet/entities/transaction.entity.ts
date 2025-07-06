@@ -22,6 +22,9 @@ export class Transaction {
   @Column({ type: 'enum', enum: ['deposit', 'withdrawal', 'transfer'] })
   type: TransactionType;
 
+  @Column({ default: 'PENDING' })
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+
   @ManyToOne(() => Wallet, { nullable: true })
   senderWallet?: Wallet;
 
