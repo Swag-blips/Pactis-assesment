@@ -49,7 +49,7 @@ export class WalletService {
 
   async depositFunds(
     depositFundsDto: DepositFundsDto,
-  ): Promise<{ status: string; transactionId: string }> {
+  ): Promise<{ status: string; transactionId: string; responsePayload?: any }> {
     const { walletId, amount, clientTransactionId } = depositFundsDto;
 
     await this.findWalletOrThrow(walletId);
@@ -60,7 +60,11 @@ export class WalletService {
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
     } else if (existing?.status === 'FAILED') {
-      return { status: 'failed', transactionId: clientTransactionId };
+      return {
+        status: 'failed',
+        transactionId: clientTransactionId,
+        responsePayload: existing.responsePayload,
+      };
     }
     try {
       await this.idempotencyLogRepository.insert({
@@ -107,7 +111,7 @@ export class WalletService {
 
   async withDrawFunds(
     dto: WithDrawFundsDto,
-  ): Promise<{ status: string; transactionId: string }> {
+  ): Promise<{ status: string; transactionId: string; responsePayload?: any }> {
     const { walletId, amount, clientTransactionId } = dto;
 
     await this.findWalletOrThrow(walletId);
@@ -119,7 +123,11 @@ export class WalletService {
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
     } else if (existing?.status === 'FAILED') {
-      return { status: 'failed', transactionId: clientTransactionId };
+      return {
+        status: 'failed',
+        transactionId: clientTransactionId,
+        responsePayload: existing.responsePayload,
+      };
     }
 
     try {
@@ -284,7 +292,7 @@ export class WalletService {
 
     const paginated = transactions.slice(skip, skip + take);
 
-    console.log('transactions here', paginated);
+ 
 
     return { data: paginated, total };
   }

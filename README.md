@@ -1,4 +1,3 @@
-
 # Wallet System API
 
 ## 🚀 Overview
@@ -37,15 +36,15 @@ This project implements a **production-grade backend API** for a digital wallet 
 
 ## 🧱 Tech Stack
 
-| Layer         | Tool/Service            |
-|---------------|--------------------------|
-| Framework     | [NestJS](https://nestjs.com/) |
-| Language      | TypeScript (Node.js)     |
-| Database      | MySQL or PostgreSQL via TypeORM |
-| Caching       | Redis                    |
-| Queues        | Bull (backed by Redis)   |
-| Testing       | Jest                     |
-| Containerization | Docker + Docker Compose |
+| Layer            | Tool/Service                    |
+| ---------------- | ------------------------------- |
+| Framework        | [NestJS](https://nestjs.com/)   |
+| Language         | TypeScript (Node.js)            |
+| Database         | MySQL or PostgreSQL via TypeORM |
+| Caching          | Redis                           |
+| Queues           | Bull (backed by Redis)          |
+| Testing          | Jest                            |
+| Containerization | Docker + Docker Compose         |
 
 ---
 
@@ -89,13 +88,13 @@ Ensure Redis and your database are running locally. Update `.env` accordingly.
 
 ### Endpoints
 
-| Method | Path                            | Description                  |
-|--------|----------------------------------|------------------------------|
-| POST   | `/wallets`                      | Create wallet                |
-| POST   | `/wallets/:id/deposit`          | Deposit funds                |
-| POST   | `/wallets/:id/withdraw`         | Withdraw funds               |
-| POST   | `/wallets/transfer`             | Transfer between wallets     |
-| GET    | `/wallets/:id/transactions`     | Transaction history (paginated) |
+| Method | Path                        | Description                     |
+| ------ | --------------------------- | ------------------------------- |
+| POST   | `/wallets`                  | Create wallet                   |
+| POST   | `/wallets/:id/deposit`      | Deposit funds                   |
+| POST   | `/wallets/:id/withdraw`     | Withdraw funds                  |
+| POST   | `/wallets/transfer`         | Transfer between wallets        |
+| GET    | `/wallets/:id/transactions` | Transaction history (paginated) |
 
 Refer to Swagger for full request/response schemas.
 
@@ -104,6 +103,7 @@ Refer to Swagger for full request/response schemas.
 ## 🗃️ Database Schema
 
 ### 🪪 `wallets`
+
 - `id` (UUID, PK)
 - `balance` (decimal)
 - `created_at` (timestamp)
@@ -111,6 +111,7 @@ Refer to Swagger for full request/response schemas.
 - Indexes: `id` (unique)
 
 ### 📜 `transactions`
+
 - `id` (UUID, PK)
 - `senderWallet` (FK)
 - `receiverWallet` (FK)
@@ -121,12 +122,14 @@ Refer to Swagger for full request/response schemas.
 - `timestamp` (timestamp)
 - Indexes: `wallet_id`, `created_at`
 
-### 🔒 `idempotency_keys`
-- `id` (UUID, PK)
-- `status` (success, error)
-- `created_at` (timestamp)
+### 🔒 `idempotencyLog`
 
-**Constraints:**
+- `id` (UUID, PK)
+- `status` (processing, success, failed)
+- `created_at` (timestamp)
+- `clientTransactionId` (string)
+- ` responsePayload`  (any)
+  **Constraints:**
 - No negative balances (enforced via app logic + DB)
 - Unique transaction IDs (for idempotency)
 
@@ -180,17 +183,17 @@ MIT
 
 ### 🔍 Assessment Alignment Checklist ✅
 
-| Requirement                    | Implemented? |
-|-------------------------------|--------------|
-| Wallet Creation               | ✅           |
-| Deposit / Withdraw            | ✅           |
-| Transfer + Idempotency        | ✅           |
-| Transaction History (Paginated) | ✅        |
-| Concurrency & Deadlock Safety | ✅           |
-| Message Queue (BullMQ)        | ✅           |
-| Redis Caching                 | ✅           |
-| Low-Latency Optimization      | ✅           |
-| Tests (unit + integration)    | ✅           |
-| Docker                        | ✅           |
-| Swagger Docs                  | ✅           |
-| Rate Limiting (Bonus)         | ✅           |
+| Requirement                     | Implemented? |
+| ------------------------------- | ------------ |
+| Wallet Creation                 | ✅           |
+| Deposit / Withdraw              | ✅           |
+| Transfer + Idempotency          | ✅           |
+| Transaction History (Paginated) | ✅           |
+| Concurrency & Deadlock Safety   | ✅           |
+| Message Queue (BullMQ)          | ✅           |
+| Redis Caching                   | ✅           |
+| Low-Latency Optimization        | ✅           |
+| Tests (unit + integration)      | ✅           |
+| Docker                          | ✅           |
+| Swagger Docs                    | ✅           |
+| Rate Limiting (Bonus)           | ✅           |

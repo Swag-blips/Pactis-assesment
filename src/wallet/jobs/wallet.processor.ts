@@ -62,6 +62,8 @@ export class WalletProcessor extends WorkerHost {
       const transaction = await this.transactionRepository.findOne({
         where: { id: transactionId },
       });
+
+      this.logger.log("TRANSACTION", transaction)
       if (!transaction) throw new NotFoundException('Transaction not found');
       if (transaction.type !== 'transfer') {
         throw new BadRequestException(
