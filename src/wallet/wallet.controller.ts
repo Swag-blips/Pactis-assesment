@@ -91,16 +91,13 @@ export class WalletController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Deposit funds into a wallet' })
   @ApiBody({ type: DepositFundsDto })
-  @ApiResponse({
+  @ApiResponse({  
     status: 200,
     description: 'Deposit request queued successfully',
     schema: {
       example: {
-        status: 'queued',
-        message: 'Deposit request received and is being processed.',
+        status: 'queued',     
         transactionId: 'uuid-string',
-        expectedState:
-          'Check transaction status with this ID after a few seconds.',
       },
     },
   })

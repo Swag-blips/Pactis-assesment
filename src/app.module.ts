@@ -9,7 +9,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
   imports: [
     WalletModule,
     ConfigModule.forRoot({
-      isGlobal: true,  
+      isGlobal: true,
       envFilePath: '.env',
     }),
     BullModule.forRoot({
@@ -27,7 +27,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
       password: process.env.pgPassword,
       database: process.env.PG_DB,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
     }),
   ],
   controllers: [],
