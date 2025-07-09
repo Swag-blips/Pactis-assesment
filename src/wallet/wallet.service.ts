@@ -24,16 +24,16 @@ import { Cache } from 'cache-manager';
 @Injectable()
 export class WalletService {
   private readonly logger = new Logger();
-  constructor(
+  constructor( 
     @InjectRepository(Wallet) private walletRepository: Repository<Wallet>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
-    @InjectRepository(IdempotencyLog)
+    @InjectRepository(IdempotencyLog) 
     private idempotencyLogRepository: Repository<IdempotencyLog>,
     @InjectQueue('wallet-queue') private walletQueue: Queue,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
-  async createWallet(createWalletDto: CreateWalletDto): Promise<Wallet> {
+   async createWallet(createWalletDto: CreateWalletDto): Promise<Wallet> {
     const newWallet = this.walletRepository.create({
       balance: createWalletDto.balance,
     });
@@ -44,8 +44,8 @@ export class WalletService {
       `wallets:${savedWallet.id}`,
       JSON.stringify(savedWallet),
     );
-    return savedWallet;
-  }
+    return savedWallet; 
+  } 
 
   async depositFunds(
     depositFundsDto: DepositFundsDto,
@@ -83,7 +83,7 @@ export class WalletService {
       type: 'deposit',
       receiverWallet: { id: walletId },
       status: 'PENDING',
-    });
+    }); 
     await this.transactionRepository.save(transaction);
 
     await this.walletQueue.add(
@@ -93,10 +93,10 @@ export class WalletService {
         clientTransactionId,
         walletId,
         amount,
-      },
-      {
+      }, 
+      { 
         priority: 1,
-        delay: 5000,
+        delay: 5000, 
         attempts: 3,
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: true,
@@ -123,7 +123,7 @@ export class WalletService {
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
     } else if (existing?.status === 'FAILED') {
-      return {
+      return { 
         status: 'failed',
         transactionId: clientTransactionId,
         responsePayload: existing.responsePayload,
@@ -177,7 +177,7 @@ export class WalletService {
     transferFundsDto: TransferFundsDto,
   ): Promise<{ status: string; transactionId: string; error?: any }> {
     const { senderWalletId, receiverWalletId, amount, clientTransactionId } =
-      transferFundsDto;
+      transferFundsDto; 
 
     const senderWallet = await this.walletRepository.findOne({
       where: { id: senderWalletId },
@@ -186,19 +186,19 @@ export class WalletService {
 
     const receiverWallet = await this.walletRepository.findOne({
       where: { id: receiverWalletId },
-    });
+    });                    
     if (!receiverWallet)
       throw new NotFoundException('Receiver wallet not found');
 
     const existing = await this.idempotencyLogRepository.findOne({
       where: { clientTransactionId },
-    });
+    });    
 
     if (existing?.status === 'SUCCESS') {
       return { status: 'success', transactionId: clientTransactionId };
     } else if (existing?.status === 'FAILED') {
       return {
-        status: 'failed',
+        status: 'failed', 
         transactionId: clientTransactionId,
         error: existing.responsePayload,
       };
@@ -253,7 +253,7 @@ export class WalletService {
     };
   }
   async getTransactions(
-    walletId: string,
+    walletId: string,  
     take: number,
     skip: number,
   ): Promise<{ data: Transaction[]; total: number }> {

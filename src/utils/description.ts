@@ -9,7 +9,7 @@ Idempotency for preventing duplicate transfers
 
 Atomic transactions to ensure reliability
 
-Message queue integration (RabbitMQ/Bull) for asynchronous processing
+Message queue integration (Bull) for asynchronous processing
 
 Redis caching for low-latency balance retrieval
 
