@@ -28,9 +28,9 @@ import { WalletService } from './wallet.service';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Wallet')
-@ApiBearerAuth()
+
 @Controller('wallet')
-export class WalletController {
+export class WalletController { 
   private readonly logger = new Logger();
   constructor(private walletService: WalletService) {}
 
@@ -38,9 +38,9 @@ export class WalletController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a new wallet' })
   @ApiBody({ type: CreateWalletDto })
-  @ApiCreatedResponse({
+  @ApiCreatedResponse({ 
     description: 'Wallet created successfully',
-    schema: {
+    schema: { 
       example: {
         success: true,
         message: 'Wallet created successfully',
@@ -138,7 +138,7 @@ export class WalletController {
       return {
         ...deposit,
       };
-    } catch (error) {
+    } catch (error) { 
       this.logger.error(error);
       throw error;
     }

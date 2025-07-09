@@ -28,7 +28,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
       database: process.env.PG_DB,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
     }),
-  ],
+  ], 
   controllers: [],
   providers: [],
 })

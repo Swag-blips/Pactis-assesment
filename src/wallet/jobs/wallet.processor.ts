@@ -63,7 +63,7 @@ export class WalletProcessor extends WorkerHost {
         where: { id: transactionId },
       });
 
-      this.logger.log("TRANSACTION", transaction)
+      this.logger.log('TRANSACTION', transaction);
       if (!transaction) throw new NotFoundException('Transaction not found');
       if (transaction.type !== 'transfer') {
         throw new BadRequestException(
@@ -83,7 +83,7 @@ export class WalletProcessor extends WorkerHost {
         const senderWallet = await em.findOne(Wallet, {
           where: { id: senderWalletId },
           lock: { mode: 'pessimistic_write' },
-        });
+        }); 
         const receiverWallet = await em.findOne(Wallet, {
           where: { id: receiverWalletId },
           lock: { mode: 'pessimistic_write' },
@@ -117,7 +117,7 @@ export class WalletProcessor extends WorkerHost {
         await this.invalidateTransactionCache(senderWallet.id);
         await this.invalidateTransactionCache(receiverWallet.id);
 
-        transaction.status = 'SUCCESS';
+        transaction.status = 'SUCCESS'; 
         await em.save(transaction);
 
         await em.update(
@@ -144,7 +144,7 @@ export class WalletProcessor extends WorkerHost {
 
       this.logger.log(
         `Transfer completed for sender ${senderWalletId} to receiver ${receiverWalletId}`,
-      );
+      ); 
       return { status: 'completed', transactionId };
     } catch (err) {
       this.logger.error(
@@ -173,14 +173,14 @@ export class WalletProcessor extends WorkerHost {
         throw new BadRequestException(
           `Invalid transaction type: expected 'deposit', got '${transaction.type}'`,
         );
-      }
+      } 
 
       const idempotency = await this.idempotencyLogRepository.findOne({
         where: { clientTransactionId },
       });
       if (idempotency?.status === 'SUCCESS') {
         this.logger.log(`Already processed`);
-        return idempotency.responsePayload;
+        return idempotency.responsePayload; 
       }
 
       await this.walletRepository.manager.transaction(async (em) => {
@@ -193,7 +193,7 @@ export class WalletProcessor extends WorkerHost {
         const currentBalance = parseFloat(wallet.balance.toString());
         const depositAmount = parseFloat(amount.toString());
         if (depositAmount <= 0) {
-          throw new BadRequestException('Deposit must be > 0');
+          throw new BadRequestException('Deposit must be greater than 0');
         }
 
         wallet.balance = parseFloat(
@@ -250,7 +250,7 @@ export class WalletProcessor extends WorkerHost {
     try {
       const transaction = await this.transactionRepository.findOne({
         where: { id: transactionId },
-      });
+      }); 
       if (!transaction) throw new NotFoundException('Transaction not found');
       if (transaction.type !== 'withdrawal') {
         throw new BadRequestException(
@@ -277,7 +277,7 @@ export class WalletProcessor extends WorkerHost {
         const currentBalance = parseFloat(wallet.balance.toString());
         const withdrawAmount = parseFloat(amount.toString());
         if (withdrawAmount <= 0) {
-          throw new BadRequestException('Withdraw must be > 0');
+          throw new BadRequestException('Withdraw amount must be greater 0');
         }
         if (currentBalance < withdrawAmount) {
           throw new BadRequestException('Insufficient funds');
@@ -335,7 +335,7 @@ export class WalletProcessor extends WorkerHost {
     await this.transactionRepository.update(transactionId, {
       status: 'FAILED',
       errorMessage: error.message,
-    });
+    }); 
 
     await this.idempotencyLogRepository.update(
       { clientTransactionId },
