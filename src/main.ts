@@ -7,7 +7,6 @@ import { description } from './utils/description';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  console.log(process.env.REDIS_PORT);
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
